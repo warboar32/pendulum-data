@@ -11,55 +11,58 @@ dx = [x(2);                                                             ...
 end
 
 
-
-
+clear all;
 close all;
+clc
 
-g       = 9.81;                 % Gravatational Constant            [m/s^2]
-I       = 248729/(1000^3);      % Moment of Inertia about Piviot    [kg-m^2]
-l_cm    = 20.8/1000 ;           % Piviot to CM                      [m]
-b       = .00025;               % Viscus Damping                    [N-m-s/rad]
-m       = 114/1000;             % Mass                              [kg]
-sigma   = 0;                    % Coloumb Friction Coeffieicnet     [N-m]
-
-z = iddata(y,[],.015148008,'Name','Pendulum');
-z.OutputName = 'Pendulum position';
+load('exp_data.mat');
+z = iddata(y_exp,[],.015148008,'Name','Pendulum');
+z.OutputName = 'Pendulum Position';
 z.OutputUnit = 'rad';
 z.TimeUnit = 's';
 
 figure('Name',[z.Name ': output data']);
 plot(z);
 
-FileName        = 'pendulum';
-Order           = [1 0 2];
-Parameters      = [g; I; l_cm; b; m; sigma];
-InitialStates   = [y(1); 0];
-Ts              = 0;
+% Initial Parameter Estimate
+g     = 9.81;
+I     = 2.4873e-4  % 3.22235e-4;
+l_cm  = 2.0800e-2  % 2.96242e-2;
+b     = 2.5000e-4  % 1.45852e-4;
+m     = 1.1400e-1  % 1.18465e-1;
+sigma = 0.0000e00  % 3.01011e-4;
 
-nlgr = idnlgrey(FileName,Order,Parameters,InitialStates,Ts);
+FileName = 'pendulum';
+Order = [1 0 2];
+Parameters = [g; I; l_cm; b; m; sigma];
+InitialStates = [y_exp(1); 0];
+Ts = 0;
+
+nlgr = idnlgrey(FileName, Order, Parameters, InitialStates, Ts);
 nlgr.OutputName = 'Pendulum Position';
 nlgr.OutputUnit = 'rad';
 nlgr.TimeUnit = 's';
-nlgr = setinit(nlgr, 'Name', {'Pendulum Position' 'Pendulum Velocity'});
+nlgr = setinit(nlgr, 'Name', {'Pendulum Position' ' Pendulum Velocity'});
 nlgr = setinit(nlgr, 'Unit', {'rad' 'rad/s'});
-nlgr = setpar(nlgr, 'Name', {'Gravity Constant' 'Moment of Inertia' 'Radius' 'Viscus Damping' 'Mass' 'Coluomb Friction'});
+nlgr = setpar(nlgr, 'Name', {'Gravity Constant' 'Moment of Inertia' 'Radius' 'Viscus Damping' 'Mass' Coluomb Friction});
 nlgr = setpar(nlgr, 'Unit', {'m/s^2' 'kg-m^2' 'm' 'Nms/rad' 'kg' 'Nm'});
 nlgr = setpar(nlgr, 'Minimum', {eps(0) eps(0) eps(0) eps(0) eps(0) 0});
+nlgr = setpar(nlgr, 'Fixed', {true false false false false false});
+nlgr.SimulationOptions.Solver = 'ode45';
+opt = nlgreyestOptions('Display','on');
+opt.SearchOption.Advanced.To1X = 1e-8;
+opt.SearchOption.Advanced.MaxIter = 50;
 
-nlgrrk45.SimulationOptions.Solver = 'ode45';     % Runge-Kutta 45.
-compare(z, nlgrrk45, 1, ...
-   compareOptions('InitialCondition', 'model'));
+nlgr = nlgreyest(z,nlgr,opt)
+compare(z,nlgr,1,compareOptions('InitialCondition','model))
 
+nlgr.Parameters(1).Value
+nlgr.Parameters(2).Value
+nlgr.Parameters(3).Value
+nlgr.Parameters(4).Value
+nlgr.Parameters(5).Value
+nlgr.Parameters(6).Value
 
-nlgrrk45 = setpar(nlgrrk45, 'Fixed', {true true true false true true});
-
-opt = nlgreyestOptions('Display', 'on');
-trk45 = clock;
-nlgrrk45 = nlgreyest(z, nlgrrk45, opt);   % Perform parameter estimation.
-trk45 = etime(clock, trk45);
-
-compare(z,nlgrrk45, 1, ...
-   compareOptions('InitialCondition', 'model'));
    
    
    
